@@ -7,7 +7,7 @@ export class CatalogRepository implements ICatalogRepository {
     }
 
     delete(id: any): Promise<void> {
-        return Promise.resolve(undefined);
+        return Promise.resolve(id);
     }
 
     find(): Promise<Product[]> {
