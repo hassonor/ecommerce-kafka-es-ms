@@ -1,0 +1,11 @@
+{
+  "name": "catalog_service",
+  "version": "1.0.0",
+  "description": "\"Catalog microservice",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "author": "Or Hasson",
+  "license": "MIT"
+}
