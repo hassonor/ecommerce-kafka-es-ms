@@ -1,14 +1,26 @@
 import express, {Request, Response, NextFunction} from 'express';
 import * as service from "../service/cart.service";
 import * as repository from "../repository/cart.repository";
+import {CartRequestInput, CartRequestSchema} from "../dto/cartRequest.dto";
+import {ValidateRequest} from "../utils/validator";
 
 
 const router = express.Router();
 const repo = repository.CartRepository
 
 router.post("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    const response = await service.CreateCart(req.body, repo);
-    return res.status(200).json(response)
+    try {
+        const error = ValidateRequest<CartRequestInput>(req.body as CartRequestInput, CartRequestSchema);
+        if (error) {
+            return res.status(400).json({error});
+        }
+
+        const response = await service.CreateCart(req.body, repo);
+        return res.status(200).json(response)
+    } catch (error) {
+        return res.status(400).json({error});
+    }
+
 })
 
 router.get("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
