@@ -14,12 +14,16 @@
   "author": "Or Hasson",
   "license": "MIT",
   "dependencies": {
+    "class-validator": "^0.14.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.2",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "pino": "^9.5.0",
+    "pino-http": "^10.3.0",
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.11",
