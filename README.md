@@ -2,4 +2,4 @@
 
 1. TODO: Create shared package
 2. TODO: Secure the communication between microservices
-3. 
+3. TODO: Implement a real autMiddleware for cart and order routes

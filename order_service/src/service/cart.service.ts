@@ -1,7 +1,8 @@
-import {CartRepositoryType} from "../types/repository.type";
-import {CartRequestInput} from "../dto/cartRequest.dto";
-import {GetProductDetails} from "../utils/broker";
+import {CartEditRequestInput, CartRequestInput} from "../dto/cartRequest.dto";
+import {GetProductDetails} from "../utils";
 import {logger, NotFoundError} from "../utils";
+import {CartRepositoryType} from "../repository/cart.repository";
+import {CartLineItem} from "../db/schema";
 
 export const CreateCart = async (input: CartRequestInput, repo: CartRepositoryType) => {
 
@@ -13,23 +14,32 @@ export const CreateCart = async (input: CartRequestInput, repo: CartRepositoryTy
         throw new NotFoundError("product is out of stock");
     }
 
-    // const data = await repo.create(input);
-    return product;
+    return await repo.createCart(input.customerId, {
+        productId: product.id,
+        price: product.price.toString(),
+        qty: input.qty,
+        itemName: product.name,
+        variant: product.variant
+    } as CartLineItem)
+
 }
 
 
-export const GetCart = async (input: any, repo: CartRepositoryType) => {
-    const data = await repo.find(input);
+export const GetCart = async (id: number, repo: CartRepositoryType) => {
+    const data = await repo.findCart(id);
+    if (!data) {
+        throw new NotFoundError("cart is out of stock");
+    }
     return data;
 }
 
 
-export const EditCart = async (input: any, repo: CartRepositoryType) => {
-    const data = await repo.update(input);
+export const EditCart = async (input: CartEditRequestInput, repo: CartRepositoryType) => {
+    const data = await repo.updateCart(input.productId, input.qty);
     return data;
 }
 
-export const DeleteCart = async (input: any, repo: CartRepositoryType) => {
-    const data = await repo.delete(input);
+export const DeleteCart = async (id: number, repo: CartRepositoryType) => {
+    const data = await repo.deleteCart(id);
     return data;
 }

@@ -2,11 +2,23 @@ import express, {Request, Response, NextFunction} from 'express';
 import * as service from "../service/cart.service";
 import * as repository from "../repository/cart.repository";
 import {CartRequestInput, CartRequestSchema} from "../dto/cartRequest.dto";
-import {ValidateRequest} from "../utils/validator";
+import {ValidateRequest} from "../utils";
 
 
 const router = express.Router();
 const repo = repository.CartRepository
+
+// TODO:  Implement a real autMiddleware
+const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    //jwt
+    const isValidUser = true
+    if (!isValidUser) {
+        return res.status(403).json({error: "authorization error"});
+    }
+    next();
+}
+
+router.use(authMiddleware);
 
 router.post("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
@@ -24,17 +36,20 @@ router.post("/cart", async (req: Request, res: Response, next: NextFunction): Pr
 })
 
 router.get("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    const response = await service.GetCart(req.body, repo);
+    // comes from our auth user parsed from JWT
+    const response = await service.GetCart(req.body.customerId, repo);
     return res.status(200).json(response)
 })
 
-router.patch("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    const response = await service.EditCart(req.body, repo);
+router.patch("/cart/:lineItemId", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    const liteItemId = req.params.lineItemId;
+    const response = await service.EditCart({productId: +liteItemId, qty: req.body.qty}, repo);
     return res.status(200).json(response)
 })
 
-router.delete("/cart", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    const response = await service.DeleteCart(req.body, repo);
+router.delete("/cart/:lineItemId", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    const liteItemId = req.params.lineItemId;
+    const response = await service.DeleteCart(+liteItemId, repo);
     return res.status(200).json(response)
 })
 
