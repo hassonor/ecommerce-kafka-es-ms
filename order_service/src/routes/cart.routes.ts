@@ -1,7 +1,7 @@
 import express, {Request, Response, NextFunction} from 'express';
 import * as service from "../service/cart.service";
 import * as repository from "../repository/cart.repository";
-import {EditCart, GetCart} from "../service/cart.service";
+
 
 const router = express.Router();
 const repo = repository.CartRepository
