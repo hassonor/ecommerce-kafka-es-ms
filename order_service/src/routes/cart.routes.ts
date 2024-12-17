@@ -18,7 +18,7 @@ router.post("/cart", async (req: Request, res: Response, next: NextFunction): Pr
         const response = await service.CreateCart(req.body, repo);
         return res.status(200).json(response)
     } catch (error) {
-        return res.status(400).json({error});
+        return res.status(404).json({error});
     }
 
 })
