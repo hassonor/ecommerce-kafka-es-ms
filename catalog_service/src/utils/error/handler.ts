@@ -1,4 +1,4 @@
-import {Request, Response, NextFunction} from 'express';
+import {Request, Response, NextFunction, ErrorRequestHandler} from 'express';
 import {
     AuthorizeError,
     NotFoundError,
@@ -6,35 +6,34 @@ import {
 } from './errors';
 import {logger} from '../logger';
 
-export const HandleErrorWithLogger = (
+
+export const HandleErrorWithLogger: ErrorRequestHandler = (
     error: Error,
     req: Request,
     res: Response,
-    next: NextFunction,
-) => {
+    next: NextFunction
+): void => {
     let reportError = true;
     let status = 500;
     let data = error.message;
 
-    // skip common / known errors
-    [NotFoundError, ValidationError, AuthorizeError].forEach(
-        (typeOfError) => {
-            if (error instanceof typeOfError) {
-                reportError = false;
-                status = error.status;
-                data = error.message;
-            }
-        },
-    );
+    [NotFoundError, ValidationError, AuthorizeError].forEach((typeOfError) => {
+        if (error instanceof typeOfError) {
+            reportError = false;
+            // Safely handle status if error classes have a status property
+            status = (error as any).status ?? 400;
+            data = error.message;
+        }
+    });
 
     if (reportError) {
-        // error reporting tools implementation eg: Cloudwatch,Sentry etc;
         logger.error(error);
     } else {
-        logger.warn(error); // ignore common errors caused by user
+        logger.warn(error);
     }
 
-    return res.status(status).json(data);
+    // Do NOT return the response, just send it
+    res.status(status).json({error: data});
 };
 
 export const HandleUnCaughtException = async (
