@@ -2,47 +2,57 @@ import {MessageBrokerType, MessageHandler, PublishType} from "./broker.type";
 import {Consumer, Kafka, logLevel, Partitioners, Producer} from "kafkajs";
 import {logger} from "../logger";
 import {MessageType, OrderEvent, TOPIC_TYPE} from "../../types";
+import {BROKERS_ENV} from "../../config";
 
 // configuration properties
+// Example: BROKERS=localhost:9092,localhost:9093,localhost:9094
 const CLIENT_ID = process.env.CLIENT_ID || "order-service";
 const GROUP_ID = process.env.GROUP_ID || "order-service-group";
-const BROKERS = [process.env.BROKER_1 || "localhost:9092"];
+
 
 const kafka = new Kafka({
     clientId: CLIENT_ID,
-    brokers: BROKERS,
+    brokers: BROKERS_ENV,
     logLevel: logLevel.INFO
-})
+});
 
-let producer: Producer;
-let consumer: Consumer;
+let producer: Producer | null = null;
+let consumer: Consumer | null = null;
 
-const createTopic = async (topic: string[]) => {
-    const topics = topic.map((t) => ({
+const createTopic = async (topicsToCreate: string[]) => {
+    const topics = topicsToCreate.map((t) => ({
         topic: t,
         numPartitions: 2,
-        replicationFactor: 1, // based on available brokers
+        replicationFactor: 3, // Adjust based on your cluster configuration
     }));
 
     const admin = kafka.admin();
     await admin.connect();
-    const topicExists = await admin.listTopics();
-    logger.info("topicExists", topicExists);
+
+    // Listing existing topics
+    const existingTopics = await admin.listTopics();
+    logger.info("Existing topics:", {existingTopics});
+
+    // Creating only non-existing topics
     for (const t of topics) {
-        if (!topicExists.includes(t.topic)) {
+        if (!existingTopics.includes(t.topic)) {
             await admin.createTopics({
                 topics: [t],
             });
+            logger.info(`Created topic: ${t.topic}`);
+        } else {
+            logger.info(`Topic already exists: ${t.topic}`);
         }
     }
     await admin.disconnect();
-}
+};
 
 const connectProducer = async <T>(): Promise<T> => {
+    // Ensure the "OrderEvents" topic is created
     await createTopic(["OrderEvents"]);
 
     if (producer) {
-        logger.info("producer already connected with existing connection");
+        logger.info("Producer already connected with existing connection");
         return producer as unknown as T;
     }
 
@@ -51,13 +61,14 @@ const connectProducer = async <T>(): Promise<T> => {
     });
 
     await producer.connect();
-    logger.info("producer connected with a new connection");
+    logger.info("Producer connected with a new connection");
     return producer as unknown as T;
 };
 
 const disconnectProducer = async (): Promise<void> => {
     if (producer) {
         await producer.disconnect();
+        producer = null;
     }
 };
 
@@ -74,30 +85,31 @@ const publish = async (data: PublishType): Promise<boolean> => {
         ],
     });
 
-    logger.info("publishing result");
-    console.log(result)
+    logger.info("Publishing result", {result});
     return result.length > 0;
 };
 
-// Consumer functionality
 const connectConsumer = async <T>(): Promise<T> => {
     if (consumer) {
+        logger.info("Consumer already connected with existing connection");
         return consumer as unknown as T;
     }
 
     consumer = kafka.consumer({
         groupId: GROUP_ID,
-        sessionTimeout: 60000, // 60 seconds instead of 30
-        heartbeatInterval: 10000,
+        sessionTimeout: 30000,
+        heartbeatInterval: 3000,
     });
 
     await consumer.connect();
+    logger.info("Consumer connected with a new connection");
     return consumer as unknown as T;
 };
 
 const disconnectConsumer = async (): Promise<void> => {
     if (consumer) {
         await consumer.disconnect();
+        consumer = null;
     }
 };
 
@@ -110,6 +122,7 @@ const subscribe = async (
 
     await consumer.run({
         eachMessage: async ({topic, partition, message}) => {
+            // If you only want to process messages from "OrderEvents", you can keep this check
             if (topic !== "OrderEvents") {
                 return;
             }
@@ -118,7 +131,7 @@ const subscribe = async (
                 const inputMessage: MessageType = {
                     headers: message.headers,
                     event: message.key.toString() as OrderEvent,
-                    data: message.value ? JSON.parse(message.value.toString()) : null,
+                    data: JSON.parse(message.value.toString()),
                 };
                 await messageHandler(inputMessage);
                 await consumer.commitOffsets([
