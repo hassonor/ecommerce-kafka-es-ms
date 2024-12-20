@@ -1,12 +1,22 @@
 {
   "name": "user_service",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon app.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "author": "Or Hasson",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
 }
