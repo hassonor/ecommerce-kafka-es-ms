@@ -1,5 +1,5 @@
 import {CartRepositoryType} from "../repository/cart.repository";
-import * as Repository from "../repository/cart.repository";
+
 import {CreateCart, GetCart, EditCart, DeleteCart} from "./cart.service";
 import {NotFoundError} from "../utils";
 import {CartRequestInput, CartEditRequestInput} from "../dto/cartRequest.dto";

@@ -10,4 +10,6 @@ export interface ICatalogRepository {
     find(limit: number, offset: number): Promise<Product[]>
 
     findOne(id: number): Promise<Product | undefined | null>
+
+    findStock(ids: number[]): Promise<Product[]>;
 }
