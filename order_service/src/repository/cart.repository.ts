@@ -1,16 +1,18 @@
 import {DB} from "../db/db.connection";
 import {Cart, CartLineItem, cartLineItems, carts} from "../db/schema";
-import {logger, NotFoundError} from "../utils";
+import {NotFoundError} from "../utils";
 import {eq} from "drizzle-orm";
+import {CartWithLineItems} from "../dto/cartRequest.dto";
 
 // declare repository type
 
 export type CartRepositoryType = {
     createCart: (customerId: number, lineItem: CartLineItem) => Promise<number>;
-    findCart: (id: number) => Promise<Cart>;
+    findCart: (id: number) => Promise<CartWithLineItems>;
     updateCart: (id: number, qty: number) => Promise<CartLineItem>;
     deleteCart: (id: number) => Promise<Boolean>,
     clearCartData: (id: number) => Promise<Boolean>
+    findCartByProductId: (customerId: number, productId: number) => Promise<CartLineItem>;
 };
 
 
@@ -43,7 +45,7 @@ const createCart = async (
     return id;
 };
 
-const findCart = async (id: number): Promise<Cart> => {
+const findCart = async (id: number): Promise<CartWithLineItems> => {
     const cart = await DB.query.carts.findFirst({
         where: (carts, {eq}) => eq(carts.customerId, id),
         with: {
@@ -78,10 +80,25 @@ const clearCartData = async (id: number): Promise<boolean> => {
     return true;
 };
 
+const findCartByProductId = async (customerId: number, productId: number): Promise<CartLineItem> => {
+    const cart = await DB.query.carts.findFirst({
+        where: (carts, {eq}) => eq(carts.customerId, customerId),
+        with: {
+            lineItems: true
+        }
+    })
+
+    const lineItem = cart?.lineItems.find((item) => item.productId == productId);
+
+    return lineItem as CartLineItem;
+
+}
+
 export const CartRepository: CartRepositoryType = {
     createCart,
     findCart,
     updateCart,
     deleteCart,
     clearCartData,
+    findCartByProductId
 };
