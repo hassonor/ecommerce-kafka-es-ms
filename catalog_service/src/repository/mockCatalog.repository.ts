@@ -1,29 +1,48 @@
 import {ICatalogRepository} from "../interface/catalogRepository.interface";
 import {Product} from "../models/product.model";
 
+/**
+ * A mock repository for testing CatalogService without hitting the real database.
+ */
 export class MockCatalogRepository implements ICatalogRepository {
     create(data: Product): Promise<Product> {
-        const mockProduct = {
+        // Return the "created" product with an auto-generated ID for test verification.
+        const mockProduct: Product = {
             id: 123,
-            ...data
-        } as Product;
+            ...data,
+        };
         return Promise.resolve(mockProduct);
     }
 
     update(data: Product): Promise<Product> {
-        return Promise.resolve(data as unknown as Product);
+        // Return the updated product for test verification.
+        return Promise.resolve(data as Product);
     }
 
     delete(id: number) {
-        return Promise.resolve(id);
+        // Return the ID of the deleted product for test verification.
+        return Promise.resolve({id});
     }
 
     find(limit: number, offset: number): Promise<Product[]> {
+        // Return an empty list by default.
         return Promise.resolve([]);
     }
 
     findOne(id: number): Promise<Product> {
-        return Promise.resolve({id} as unknown as Product);
+        // Return a product with the given ID for test verification.
+        const mockProduct: Product = {
+            id,
+            name: "Mock Product",
+            description: "Mock Description",
+            price: 100,
+            stock: 10,
+        };
+        return Promise.resolve(mockProduct);
     }
 
+    findStock(ids: number[]): Promise<Product[]> {
+        // Return an empty list by default.
+        return Promise.resolve([]);
+    }
 }
