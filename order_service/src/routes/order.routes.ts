@@ -3,6 +3,7 @@ import * as service from "../service/order.service";
 import {RequestAuthorizer, UserGuard} from "./middlewares";
 import {OrderRepository} from "../repository/order.repository";
 import {CartRepository} from "../repository/cart.repository";
+import {OrderStatus} from "../types";
 
 const orderRepo = OrderRepository;
 const cartRepo = CartRepository;
@@ -45,7 +46,7 @@ router.patch("/orders/:id", async (req: Request, res: Response, next: NextFuncti
     try {
         // security check for microservice calls only
         const orderId = parseInt(req.params.id);
-        const status = req.body.status;
+        const status = req.body.status as OrderStatus;
         const response = await service.UpdateOrder(orderId, status, orderRepo);
         return res.status(200).json(response);
     } catch (error) {
