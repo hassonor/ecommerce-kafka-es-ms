@@ -5,7 +5,6 @@ import {MessageType, OrderEvent, TOPIC_TYPE} from "../../types";
 import {BROKERS_ENV} from "../../config";
 
 // configuration properties
-// Example: BROKERS=localhost:9092,localhost:9093,localhost:9094
 const CLIENT_ID = process.env.CLIENT_ID || "order-service";
 const GROUP_ID = process.env.GROUP_ID || "order-service-group";
 
