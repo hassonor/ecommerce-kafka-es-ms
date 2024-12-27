@@ -1,41 +1,34 @@
 /**
  * message-broker.test.ts
  */
-import {Producer, Consumer} from 'kafkajs';
-import {CatalogEvent} from '../../types';
-import {MessageBroker} from './message-broker';
-import {MessageBrokerType} from './broker.type';
 
-// ----- Mock logger -----
-jest.mock('../logger', () => ({
-    logger: {
-        info: jest.fn(),
-        error: jest.fn(),
-        warn: jest.fn(),
-    },
-}));
+// 1) Declare your mock refs
+let mockAdmin: any;
+let mockProducer: any;
+let mockConsumer: any;
+let mockKafka: any;
 
-// ----- Declare global mock vars -----
-var mockAdmin: any;
-var mockProducer: any;
-var mockConsumer: any;
-var mockKafka: any;
-
-// ----- Mock kafkajs -----
-jest.mock('kafkajs', () => {
-    mockAdmin = {
+/**
+ * 2) Mock "kafkajs" immediately so Jest hoists it properly.
+ *    We define local objects and assign them to the references above.
+ */
+jest.mock("kafkajs", () => {
+    const mockAdminLocal = {
         connect: jest.fn(),
         disconnect: jest.fn(),
         listTopics: jest.fn().mockResolvedValue([]),
         createTopics: jest.fn(),
     };
-    mockProducer = {
+
+    const mockProducerLocal = {
         connect: jest.fn(),
         disconnect: jest.fn(),
-        send: jest.fn().mockResolvedValue([{topicName: 'OrderEvents'}]),
+        // By default, mock a successful "send" returning an array with one item
+        send: jest.fn().mockResolvedValue([{topicName: "CatalogEvents"}]),
         on: jest.fn(),
     };
-    mockConsumer = {
+
+    const mockConsumerLocal = {
         connect: jest.fn(),
         disconnect: jest.fn(),
         subscribe: jest.fn(),
@@ -43,14 +36,22 @@ jest.mock('kafkajs', () => {
         commitOffsets: jest.fn(),
         on: jest.fn(),
     };
-    mockKafka = {
-        admin: jest.fn(() => mockAdmin),
-        producer: jest.fn(() => mockProducer),
-        consumer: jest.fn(() => mockConsumer),
+
+    const mockKafkaLocal = {
+        admin: jest.fn(() => mockAdminLocal),
+        producer: jest.fn(() => mockProducerLocal),
+        consumer: jest.fn(() => mockConsumerLocal),
     };
 
+    // Assign them to the top-level variables so we can reference them in tests
+    mockAdmin = mockAdminLocal;
+    mockProducer = mockProducerLocal;
+    mockConsumer = mockConsumerLocal;
+    mockKafka = mockKafkaLocal;
+
+    // Return the mock module
     return {
-        Kafka: jest.fn(() => mockKafka),
+        Kafka: jest.fn(() => mockKafkaLocal),
         Partitioners: {
             DefaultPartitioner: jest.fn(),
         },
@@ -63,20 +64,36 @@ jest.mock('kafkajs', () => {
     };
 });
 
-// ------------- TEST SUITE -------------
-describe('MessageBroker Tests', () => {
+// 3) Mock your logger if needed
+jest.mock("../logger", () => ({
+    logger: {
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+    },
+}));
+
+// 4) Now import your code under test (after the mocks)
+import {Producer, Consumer} from "kafkajs";
+import {MessageBroker} from "./message-broker";
+import {MessageBrokerType} from "./broker.type";
+import {CatalogEvent} from "../../types"; // or your real event type
+
+describe("MessageBroker Tests", () => {
     let broker: MessageBrokerType;
 
     beforeEach(() => {
+        // Clear all calls to your mocks
         jest.clearAllMocks();
+        // Re-instantiate the broker for each test
         broker = MessageBroker;
     });
 
     /*************************************************************
      * connectProducer
      *************************************************************/
-    describe('connectProducer (combined test)', () => {
-        it('should connect producer once and reuse if already connected', async () => {
+    describe("connectProducer (combined test)", () => {
+        it("should connect producer once and reuse if already connected", async () => {
             // 1) First call => we expect a real connect + admin steps
             const producerInstance = await broker.connectProducer<Producer>();
 
@@ -101,54 +118,54 @@ describe('MessageBroker Tests', () => {
     /*************************************************************
      * disconnectProducer
      *************************************************************/
-    describe('disconnectProducer', () => {
-        it('should disconnect if producer exists', async () => {
+    describe("disconnectProducer", () => {
+        it("should disconnect if producer exists", async () => {
             await broker.connectProducer<Producer>();
             await broker.disconnectProducer();
 
             expect(mockProducer.disconnect).toHaveBeenCalled();
         });
 
-        it('should do nothing if producer is null', async () => {
+        it("should do nothing if producer is null", async () => {
+            // no existing producer => should not throw
             await broker.disconnectProducer();
-            // No error => pass
         });
     });
 
     /*************************************************************
      * publish
      *************************************************************/
-    describe('publish', () => {
-        it('should publish a message with a valid OrderEvent', async () => {
+    describe("publish", () => {
+        it("should publish a message with a valid event", async () => {
             const data = {
-                headers: {'x-test': 'true'},
-                topic: 'OrderEvents' as const,
-                event: 'ORDER_CREATED' as CatalogEvent,
-                message: {foo: 'bar'},
+                headers: {"x-test": "true"},
+                topic: "CatalogEvents" as const, // matches your code in message-broker.ts
+                event: "ORDER_CREATED" as CatalogEvent, // or your real event
+                message: {foo: "bar"},
             };
 
             const result = await broker.publish(data);
             expect(result).toBe(true);
 
             expect(mockProducer.send).toHaveBeenCalledWith({
-                topic: 'OrderEvents',
+                topic: "CatalogEvents",
                 messages: [
                     {
-                        headers: {'x-test': 'true'},
-                        key: 'ORDER_CREATED',
-                        value: JSON.stringify({foo: 'bar'}),
+                        headers: {"x-test": "true"},
+                        key: "ORDER_CREATED",
+                        value: JSON.stringify({foo: "bar"}),
                     },
                 ],
             });
         });
 
-        it('should return false if producer.send() returns an empty array', async () => {
+        it("should return false if producer.send() returns an empty array", async () => {
             mockProducer.send.mockResolvedValueOnce([]);
 
             const data = {
                 headers: {},
-                topic: 'OrderEvents' as const,
-                event: 'ORDER_CREATED' as CatalogEvent,
+                topic: "CatalogEvents" as const,
+                event: "ORDER_CREATED" as CatalogEvent,
                 message: {},
             };
             const result = await broker.publish(data);
@@ -159,12 +176,11 @@ describe('MessageBroker Tests', () => {
     /*************************************************************
      * connectConsumer
      *************************************************************/
-    describe('connectConsumer', () => {
-        it('should connect consumer once', async () => {
+    describe("connectConsumer", () => {
+        it("should connect consumer once", async () => {
             const c1 = await broker.connectConsumer<Consumer>();
             const c2 = await broker.connectConsumer<Consumer>();
             expect(c1).toBe(c2);
-
             expect(mockConsumer.connect).toHaveBeenCalledTimes(1);
         });
     });
@@ -172,72 +188,75 @@ describe('MessageBroker Tests', () => {
     /*************************************************************
      * disconnectConsumer
      *************************************************************/
-    describe('disconnectConsumer', () => {
-        it('should disconnect if consumer is present', async () => {
+    describe("disconnectConsumer", () => {
+        it("should disconnect if consumer is present", async () => {
             await broker.connectConsumer<Consumer>();
             await broker.disconnectConsumer();
-
             expect(mockConsumer.disconnect).toHaveBeenCalled();
         });
 
-        it('should do nothing if consumer is null', async () => {
+        it("should do nothing if consumer is null", async () => {
+            // no consumer => pass
             await broker.disconnectConsumer();
-            // pass
         });
     });
 
     /*************************************************************
      * subscribe
      *************************************************************/
-    describe('subscribe', () => {
-        it('should subscribe to "OrderEvents" and process messages', async () => {
+    describe("subscribe", () => {
+        it('should subscribe to "CatalogEvents" and process messages', async () => {
             const handler = jest.fn();
-            await broker.subscribe(handler, 'OrderEvents');
+            // You subscribe to CatalogEvents
+            await broker.subscribe(handler, "CatalogEvents");
 
             expect(mockConsumer.subscribe).toHaveBeenCalledWith({
-                topic: 'OrderEvents',
+                topic: "CatalogEvents",
                 fromBeginning: true,
             });
             expect(mockConsumer.run).toHaveBeenCalledWith({
                 eachMessage: expect.any(Function),
             });
 
-            // Simulate a message
+            // Simulate a message with topic = "CatalogEvents"
             const {eachMessage} = (mockConsumer.run as jest.Mock).mock.calls[0][0];
             await eachMessage({
-                topic: 'OrderEvents',
+                topic: "CatalogEvents",
                 partition: 0,
                 message: {
-                    key: Buffer.from('ORDER_CREATED'),
+                    key: Buffer.from("ORDER_CREATED"),
                     value: Buffer.from(JSON.stringify({orderId: 999})),
-                    headers: {'test-header': 'true'},
-                    offset: '0',
+                    headers: {"test-header": "true"},
+                    offset: "0",
                 },
             });
 
+            // The handler should receive the parsed message
             expect(handler).toHaveBeenCalledWith({
-                headers: {'test-header': 'true'},
-                event: 'ORDER_CREATED',
+                headers: {"test-header": "true"},
+                event: "ORDER_CREATED",
                 data: {orderId: 999},
             });
+
+            // The consumer commits offset => "1"
             expect(mockConsumer.commitOffsets).toHaveBeenCalledWith([
-                {topic: 'OrderEvents', partition: 0, offset: '1'},
+                {topic: "CatalogEvents", partition: 0, offset: "1"},
             ]);
         });
 
-        it('should ignore messages if topic is not "OrderEvents"', async () => {
+        it("should ignore messages if topic is not CatalogEvents", async () => {
             const handler = jest.fn();
-            await broker.subscribe(handler, 'OrderEvents');
+            await broker.subscribe(handler, "CatalogEvents");
 
             const {eachMessage} = (mockConsumer.run as jest.Mock).mock.calls[0][0];
             await eachMessage({
-                topic: 'AnotherTopic',
+                topic: "AnotherTopic",
                 partition: 0,
                 message: {
-                    key: Buffer.from('ORDER_CREATED'),
-                    value: Buffer.from('{}'),
+                    key: Buffer.from("ORDER_CREATED"),
+                    value: Buffer.from("{}"),
                     headers: {},
-                    offset: '0',
+                    offset: "0",
                 },
             });
 
