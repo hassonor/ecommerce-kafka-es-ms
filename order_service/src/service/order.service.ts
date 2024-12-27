@@ -3,6 +3,7 @@ import {OrderLineItemType, OrderWithLineItems} from "../dto/orderRequest.dto";
 import {CartRepositoryType} from "../repository/cart.repository";
 import {MessageType, OrderStatus} from "../types";
 import {logger} from "../utils";
+import {SendCreateOrderMessage} from "./broker.service";
 
 export const CreateOrder = async (
     userId: number,
@@ -31,10 +32,12 @@ export const CreateOrder = async (
 
     const orderNumber = Math.floor(Math.random() * 1000000);
 
+    const txnId = "PENDING-TXN-ID"
+
     // create order with line items
     const orderInput: OrderWithLineItems = {
         orderNumber,
-        txnId: null,
+        txnId,
         status: OrderStatus.PENDING,
         customerId: userId,
         amount: cartTotal.toString(),
@@ -48,7 +51,7 @@ export const CreateOrder = async (
 
     // fire a message to subscription service [catalog service] to update stock
     // await orderRepo.publishOrderEvent(order, "ORDER_CREATED");
-
+    await SendCreateOrderMessage({orderInput})
     // return success message
     return {message: "Order created successfully.", orderNumber: orderNumber};
 }

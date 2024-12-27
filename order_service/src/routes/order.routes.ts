@@ -18,13 +18,9 @@ router.post("/orders", RequestAuthorizer, UserGuard, async (req: Request, res: R
     }
 })
 
-router.get("/orders", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+router.get("/orders", RequestAuthorizer, UserGuard, async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const user = req.user;
-        if (!user) {
-            return res.status(401).json({error: 'User not found'});
-        }
-        const response = await service.GetOrders(user.id, orderRepo);
+        const response = await service.GetOrders(req.user?.id!, orderRepo);
         return res.status(200).json(response);
     } catch (error) {
         next(error);

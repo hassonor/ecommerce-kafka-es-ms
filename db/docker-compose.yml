@@ -2,7 +2,7 @@ services:
   catalog_db_server:
     image: "postgres:14.0"
     ports:
-      - "5432:5432"
+      - "6002:5432"
     deploy:
       mode: replicated
       replicas: 1
@@ -15,7 +15,7 @@ services:
   order_db_server:
     image: "postgres:14.0"
     ports:
-      - "5434:5432"
+      - "6001:5432"
     deploy:
       mode: replicated
       replicas: 1
@@ -29,7 +29,7 @@ services:
   user_db_server:
     image: "postgres:14.0"
     ports:
-      - "5445:5432"
+      - "6000:5432"
     deploy:
       mode: replicated
       replicas: 1

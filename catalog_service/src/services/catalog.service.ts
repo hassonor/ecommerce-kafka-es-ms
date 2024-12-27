@@ -1,5 +1,7 @@
 import {ICatalogRepository} from "../interface/catalogRepository.interface";
 import {Product} from "../models/product.model";
+import {OrderWithLineItems} from "../types/message.type";
+import {logger} from "../utils";
 
 export class CatalogService {
     private _repository: ICatalogRepository;
@@ -50,5 +52,25 @@ export class CatalogService {
             throw new Error("unable to find product stock details");
         }
         return products;
+    }
+
+    async handleBrokerMessage(message: any) {
+        console.log("Catalog Service received message", message);
+        const orderData = message.data?.orderInput as OrderWithLineItems;
+        if (!orderData || !Array.isArray(orderData.orderItems)) {
+            logger.error("Invalid order message: orderItems is not iterable or missing", {message});
+        }
+        const {orderItems} = orderData;
+        for (const item of orderItems) {
+            console.log("Updating stock for product", item.productId, item.qty);
+            const product = await this.getProduct(item.productId);
+            if (!product) {
+                logger.error("Product not found during stock update for create order", item.productId);
+            } else {
+                // update stock
+                const updatedStock = product.stock - item.qty;
+                await this.updateProduct({...product, stock: updatedStock})
+            }
+        }
     }
 }

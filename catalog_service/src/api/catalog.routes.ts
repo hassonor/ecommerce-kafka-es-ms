@@ -1,14 +1,17 @@
 import express, {Request, Response, NextFunction} from 'express';
 import {CatalogService} from "../services/catalog.service";
 import {CatalogRepository} from "../repository/catalog.repository";
-import {RequestValidator} from "../utils/requestValidator";
+import {RequestValidator} from "../utils";
 import {CreateProductRequest, UpdateProductRequest} from "../dto/product.dto";
+import {BrokerService} from "../services/broker.service";
 
 
 const router = express.Router();
 
 export const catalogService = new CatalogService(new CatalogRepository());
 
+const brokerService = new BrokerService(catalogService);
+brokerService.initializeBroker();
 
 // endpoints
 router.post(

@@ -6,12 +6,12 @@ import {OrderEvent} from "../types";
 export const InitializeBrokers = async () => {
     const producer = await MessageBroker.connectProducer<Producer>();
     producer.on("producer.connect", async () => {
-        logger.info("Producer connected successfully.");
+        logger.info("Order Service Producer connected successfully.");
     });
 
     const consumer = await MessageBroker.connectConsumer<Consumer>();
     consumer.on("consumer.connect", async () => {
-        logger.info("Consumer connected successfully.");
+        logger.info("Order Service Consumer connected successfully.");
     });
 
     // keep listening to consumers events
